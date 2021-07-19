@@ -1,0 +1,65 @@
+library(rgeos)
+library(maptools)
+library(leaflet)
+library(here)
+library(data.table)
+
+## read shhp file
+
+melb_mapdat <- readShapeSpatial(here::here("./VIC_LGA_POLYGON_SHP_GDA2020.shp")) # https://data.gov.au/dataset/ds-dga-bdf92691-c6fe-42b9-a0e2-a4cd716fa811/details?q=
+# melb_mapdat <- readShapeSpatial(here::here("./Plan-Melbourne-Shape-Files/Administrative/Metro Partnership Boundaries_region.shp")) # https://www.planmelbourne.vic.gov.au/maps/spatial-data
+plot(melb_mapdat)
+
+## accident data
+location_raw_data <- fread('NODE.csv')
+head(location_raw_data)
+names(location_raw_data)[names(location_raw_data) == 'Lat'] <- 'LAT'
+names(location_raw_data)[names(location_raw_data) == 'Long'] <- 'LONG'
+
+location_clean <- location_raw_data[, c('ACCIDENT_NO', 'NODE_ID', 'LGA_NAME', 'DEG_URBAN_NAME', 'LAT', 'LONG', 'POSTCODE_NO')]
+
+# claculate area
+SUB_REGIONs <- melb_mapdat@data$SUB_REGION
+for (ii in seq(length(SUB_REGIONs))) {
+  message(ii)
+  logic_v <- point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[ii]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[ii]]@Polygons[[1]]@coords[, 2])
+  location_clean[, SUB_REGION := ifelse(logic_v == 1, levels(SUB_REGIONs)[ii], NA)]
+}
+
+point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[2]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[2]]@Polygons[[1]]@coords[, 2])
+point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[3]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[3]]@Polygons[[1]]@coords[, 2])
+point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[4]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[4]]@Polygons[[1]]@coords[, 2])
+point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[5]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[5]]@Polygons[[1]]@coords[, 2])
+point.in.polygon(location_clean$LONG, location_clean$LAT, melb_mapdat@polygons[[6]]@Polygons[[1]]@coords[, 1], melb_mapdat@polygons[[6]]@Polygons[[1]]@coords[, 2])
+
+
+
+
+mylabels <- melb_mapdat_copy$LGA_NAME %>%
+  lapply(htmltools::HTML)
+# mylabels <- paste(
+#   "Electorate: ", melb_mapdat$SUB_REGION, "<br/>",
+#   "Margin(votes): ", 23
+# ) %>%
+#   lapply(htmltools::HTML)
+
+leaflet(melb_mapdat_copy) %>%
+  addPolygons(
+    stroke = TRUE, 
+    color = 'White', 
+    weight = 1.5, 
+    label = ~ melb_mapdat$LGA_NAME,
+    labelOptions = labelOptions( 
+      noHide = T,
+      style = list("font-weight" = "normal", padding = "3px 8px"), 
+      textsize = "13px", 
+      direction = "auto"
+    )
+  )
+
+loc_test <- head(location, 100)
+
+
+
+
+melb_mapdat@polygons[[1]]
